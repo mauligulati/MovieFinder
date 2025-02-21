@@ -22,9 +22,10 @@ class MovieSearchViewModel {
     }
     
     func getMovieList(movieSearchString: String) {
-        networkService.fetchData(urlString: movieSearchString) { (result:Result<MovieSearchResponse, NetworkError>) in
-            switch result {
-            case .success(let movieResponse):
+        Task {
+            do {
+                let movieResponse: MovieSearchResponse = try await networkService.fetchData(urlString: movieSearchString)
+                
                 if movieResponse.response == Constants.successfulResponse {
                     if let movies = movieResponse.search, !movies.isEmpty {
                         self.delegate?.didFetchMovies(movies)
@@ -36,8 +37,8 @@ class MovieSearchViewModel {
                         self.delegate?.didFailWithError(.invalidInput(message: errorMessage))
                     }
                 }
-            case .failure(let error):
-                self.delegate?.didFailWithError(error)
+            } catch {
+                self.delegate?.didFailWithError(.unknownError)
             }
         }
     }

@@ -8,52 +8,39 @@
 import Foundation
 
 protocol NetworkService {
-    func fetchData<T: Decodable>(urlString: String, completion: @escaping (Result<T, NetworkError>) -> Void)
+    func fetchData<T: Decodable>(urlString: String) async throws -> T
 }
 
 class NetworkManager: NetworkService {
     
-    func fetchData<T:Decodable>(urlString: String, completion: @escaping (Result<T, NetworkError>) -> Void) {
+    func fetchData<T:Decodable>(urlString: String) async throws -> T {
         guard let url = URL(string: urlString) else {
-            completion(.failure(.invalidURL))
-            return
+            throw NetworkError.invalidURL
         }
         
-        URLSession.shared.dataTask(with: url) { data, response, error in
-            if let _ = error {
-                completion(.failure(.invalidRequest))
-                return
+        let (data, response) = try await URLSession.shared.data(from: url)
+        
+        guard let httpResponse = response as? HTTPURLResponse else {
+            throw NetworkError.invalidResponse
+        }
+        
+        guard (200...299).contains(httpResponse.statusCode) else {
+            let code = httpResponse.statusCode
+            switch code {
+            case 400...499:
+                throw NetworkError.clientError(statusCode: code)
+            case 500...599:
+                throw NetworkError.serverError(statusCode: code)
+            default:
+                throw NetworkError.unknownError
             }
-            
-            guard let response = response as? HTTPURLResponse else {
-                completion(.failure(.invalidResponse))
-                return
-            }
-            
-            guard (200...299).contains(response.statusCode) else {
-                let code = response.statusCode
-                switch code {
-                case 400...499:
-                    completion(.failure(.clientError(statusCode: response.statusCode)))
-                case 500...599:
-                    completion(.failure(.serverError(statusCode: response.statusCode)))
-                default:
-                    completion(.failure(.unknownError))
-                }
-                return
-            }
-            
-            guard let data else {
-                completion(.failure(.noData))
-                return
-            }
-            
-            do {
-                let decodedData = try JSONDecoder().decode(T.self, from: data)
-                completion(.success(decodedData))
-            } catch {
-                completion(.failure(.decodingError))
-            }
-        }.resume()
+        }
+        
+        do {
+            let decodedData = try JSONDecoder().decode(T.self, from: data)
+            return decodedData
+        } catch {
+            throw NetworkError.decodingError
+        }
     }
 }
