@@ -26,7 +26,8 @@ class MovieSearchViewController: UIViewController {
     }
     
     func setupMovieViewModel() {
-        movieViewModel = MovieSearchViewModel()
+        let networkService = NetworkManager()
+        movieViewModel = MovieSearchViewModel(networkService: networkService)
         movieViewModel.delegate = self
     }
     

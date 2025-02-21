@@ -7,9 +7,11 @@
 
 import Foundation
 
-final class NetworkManager {
-    static let shared = NetworkManager()
-    private init() { }
+protocol NetworkService {
+    func fetchData<T: Decodable>(urlString: String, completion: @escaping (Result<T, NetworkError>) -> Void)
+}
+
+class NetworkManager: NetworkService {
     
     func fetchData<T:Decodable>(urlString: String, completion: @escaping (Result<T, NetworkError>) -> Void) {
         guard let url = URL(string: urlString) else {

@@ -15,9 +15,14 @@ protocol MovieSearchViewModelDelegate: AnyObject {
 class MovieSearchViewModel {
     
     weak var delegate: MovieSearchViewModelDelegate?
+    private var networkService: NetworkService
     
-    func getMovieList(movieSearchString: String) {        
-        NetworkManager.shared.fetchData(urlString: movieSearchString) { (result:Result<MovieSearchResponse, NetworkError>) in
+    init(networkService: NetworkService) {
+        self.networkService = networkService
+    }
+    
+    func getMovieList(movieSearchString: String) {
+        networkService.fetchData(urlString: movieSearchString) { (result:Result<MovieSearchResponse, NetworkError>) in
             switch result {
             case .success(let movieResponse):
                 if movieResponse.response == Constants.successfulResponse {
